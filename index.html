@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Restricted Portal</title>
+  
+  <!-- Load Supabase Library -->
+  <script src="https://jsdelivr.net"></script>
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background-color: #f4f7f6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 15px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #0070f3;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { background-color: #0051b3; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div id="auth-gate" class="card">
+    <!-- Screen 1: Request Code Form -->
+    <div id="request-screen">
+      <h2>Access Restricted</h2>
+      <p>Enter your email to receive a unique full-time access code.</p>
+      <input type="email" id="user-email" placeholder="name@example.com">
+      <button onclick="sendAccessCode()">Send Me My Code</button>
+    </div>
+
+    <!-- Screen 2: Enter Verification Code Form -->
+    <div id="verify-screen" class="hidden">
+      <h2>Enter Access Code</h2>
+      <p>We emailed a unique 6-digit access code to <strong id="display-email"></strong>.</p>
+      <input type="text" id="auth-code" placeholder="6-digit code">
+      <button onclick="verifyAccessCode()">Verify & Unlock Site</button>
+    </div>
+  </div>
+
+  <script>
+    // Replace with your actual Supabase credentials
+    const SUBABASE_URL = "YOUR_SUPABASE_URL"; 
+    const SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY"; 
+    const supabase = supabase.createClient(SUBABASE_URL, SUPABASE_KEY);
+
+    // If they already logged in previously, automatically push them to the secret page
+    async function checkExistingAccess() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        window.location.href = "secret.html";
+      }
+    }
+    checkExistingAccess();
+
+    async function sendAccessCode() {
+      const emailInput = document.getElementById('user-email').value.trim();
+      if (!emailInput) { alert("Please enter your email."); return; }
+
+      const { error } = await supabase.auth.signInWithOtp({ email: emailInput });
+      if (error) {
+        alert("Error sending code: " + error.message);
+      } else {
+        document.getElementById('display-email').innerText = emailInput;
+        document.getElementById('request-screen').classList.add('hidden');
+        document.getElementById('verify-screen').classList.remove('hidden');
+      }
+    }
+
+    async function verifyAccessCode() {
+      const emailInput = document.getElementById('user-email').value.trim();
+      const codeInput = document.getElementById('auth-code').value.trim();
+
+      const { error } = await supabase.auth.verifyOtp({
+        email: emailInput,
+        token: codeInput,
+        type: 'email'
+      });
+
+      if (error) {
+        alert("Invalid or expired code.");
+      } else {
+        // Code is correct! Redirect them to the secret page
+        window.location.href = "secret.html";
+      }
+    }
+  </script>
+</body>
+</html>
